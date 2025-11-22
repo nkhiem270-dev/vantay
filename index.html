@@ -201,5 +201,11 @@ window.onload = loadData;
 document.getElementById('searchName').addEventListener('input', applyFilter);
 document.getElementById('filterDate').addEventListener('change', applyFilter);
 </script>
+// Tự động reload dữ liệu mỗi 15 giây (15000ms)
+setInterval(() => {
+    console.log("Đang tự động cập nhật dữ liệu...");
+    loadData();
+}, 15000);
+</script>
 </body>
 </html>
