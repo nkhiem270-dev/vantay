@@ -90,11 +90,12 @@ function formatDate(dateStr) {
 }
 
 function applyFilter() {
-    const name = document.getElementById('searchName').value.toLowerCase();
+    const name = document.getElementById('searchName').value.trim();
     const date = document.getElementById('filterDate').value;
 
     const filtered = allData.filter(row => {
-        const nameMatch = row.name.toLowerCase().includes(name);
+        // Chỉ lọc theo chữ cái đầu của tên
+        const nameMatch = name === '' || row.name.toLowerCase().startsWith(name.toLowerCase());
         const dateMatch = !date || formatDate(row.date) === date;
         return nameMatch && dateMatch;
     });
@@ -102,6 +103,7 @@ function applyFilter() {
     renderTable(filtered);
     renderStats(filtered);
     renderCharts(filtered);
+
 }
 
 function resetFilter() {
