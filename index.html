@@ -252,7 +252,8 @@
 </div>
 
 <script>
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?gid=0&single=true&output=csv';
+// ✅ ĐÃ SỬA: DÙNG LINK CSV TỪ SHEET CỦA BẠN
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_yLCtMK4DTk5OaUuE15LDznAdy6fm18jUg5Ze1j3dz5Q/pub?gid=0&single=true&output=csv';
 
 let allData = [];
 let currentPage = 1;
@@ -273,12 +274,12 @@ function classify(timeStr, type) {
     if (!timeStr || timeStr.includes('-')) return {text: "—", color: "#999"};
     const mins = timeToMinutes(timeStr);
     if (type === "in") {
-        if (mins <= 480) return {text: "Đi sớm", color: "#4CAF50"};
-        if (mins > 480 && mins <= 510) return {text: "Đúng giờ", color: "#FF9800"};
+        if (mins <= 480) return {text: "Đi sớm", color: "#4CAF50"}; // ≤ 8:00
+        if (mins > 480 && mins <= 510) return {text: "Đúng giờ", color: "#FF9800"}; // 8:00 - 8:30
         return {text: "Đi muộn", color: "#f44336"};
     } else {
-        if (mins < 1050) return {text: "Về sớm", color: "#4CAF50"};
-        if (mins >= 1050 && mins <= 1080) return {text: "Đúng giờ", color: "#FF9800"};
+        if (mins < 1050) return {text: "Về sớm", color: "#4CAF50"}; // < 17:30
+        if (mins >= 1050 && mins <= 1080) return {text: "Đúng giờ", color: "#FF9800"}; // 17:30–18:00
         return {text: "Về muộn", color: "#f44336"};
     }
 }
