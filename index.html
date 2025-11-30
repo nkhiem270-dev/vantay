@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name=" viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Chấm Công - Dữ Liệu Thực Tế</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -202,6 +202,16 @@
         <!-- Check-in -->
         <div id="checkin" class="sub-tab-content active">
             <div class="stats" id="stats-checkin"></div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <label>
+                    Hiển thị:
+                    <select id="barTypeIn" onchange="renderCheckInCharts(getFilteredData())">
+                        <option value="late">Ai đi muộn?</option>
+                        <option value="early">Ai đi sớm?</option>
+                        <option value="ontime">Ai đúng giờ?</option>
+                    </select>
+                </label>
+            </div>
             <div class="chart-container">
                 <div class="chart-box"><canvas id="pieChartIn"></canvas></div>
                 <div class="chart-box"><canvas id="barChartIn"></canvas></div>
@@ -211,6 +221,16 @@
         <!-- Check-out -->
         <div id="checkout" class="sub-tab-content" style="display: none;">
             <div class="stats" id="stats-checkout"></div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <label>
+                    Hiển thị:
+                    <select id="barTypeOut" onchange="renderCheckOutCharts(getFilteredData())">
+                        <option value="late">Ai về muộn?</option>
+                        <option value="early">Ai về sớm?</option>
+                        <option value="ontime">Ai đúng giờ?</option>
+                    </select>
+                </label>
+            </div>
             <div class="chart-container">
                 <div class="chart-box"><canvas id="pieChartOut"></canvas></div>
                 <div class="chart-box"><canvas id="barChartOut"></canvas></div>
@@ -238,7 +258,7 @@ let allData = [];
 let currentPage = 1;
 const rowsPerPage = 13;
 
-// Các biểu đồ
+// Biểu đồ
 let chartPieIn = null, chartBarIn = null;
 let chartPieOut = null, chartBarOut = null;
 let chartPieAll = null;
@@ -278,7 +298,7 @@ function openTab(tabName) {
     document.querySelector(`.tab-btn[onclick="openTab('${tabName}')"]`).classList.add('active');
 
     if (tabName === 'dashboard') {
-        openSubTab('checkin'); // Mặc định mở check-in
+        openSubTab('checkin');
     }
 }
 
@@ -320,10 +340,11 @@ function getFilteredData() {
     });
 }
 
+// --- LỌC (KHÔNG RESET currentPage) ---
 function applyFilter() {
-    currentPage = 1;
     const filtered = getFilteredData();
-    renderTable(filtered);
+    renderPaginatedTable(filtered);
+
     if (document.getElementById('dashboard').classList.contains('active')) {
         const activeSubTab = document.querySelector('.sub-tab-content.active');
         if (activeSubTab) {
@@ -342,6 +363,7 @@ function applyFilter() {
     }
 }
 
+// --- RESET LỌC → TRANG 1 ---
 function resetFilter() {
     currentPage = 1;
     document.getElementById('searchName').value = '';
@@ -349,12 +371,15 @@ function resetFilter() {
     applyFilter();
 }
 
+// --- CHUYỂN TRANG ---
 function changePage(page) {
     currentPage = page;
-    applyFilter();
+    const filtered = getFilteredData();
+    renderPaginatedTable(filtered);
 }
 
-function renderTable(data) {
+// --- RENDER BẢNG + PHÂN TRANG ---
+function renderPaginatedTable(data) {
     const tbody = document.getElementById('tableBody');
     const paginationEl = document.getElementById('pagination');
     tbody.innerHTML = '';
@@ -415,7 +440,7 @@ function renderTable(data) {
     paginationEl.innerHTML = html;
 }
 
-// --- RENDER STATISTICS ---
+// --- THỐNG KÊ ---
 function renderCheckInStats(data) {
     const inData = data.filter(r => r.action.includes('in'));
     const early = inData.filter(r => classify(r.time, 'in').color === '#4CAF50').length;
@@ -467,7 +492,7 @@ function renderOverviewStats(data) {
     `;
 }
 
-// --- RENDER CHARTS ---
+// --- BIỂU ĐỒ ---
 function renderCheckInCharts(data) {
     const inData = data.filter(r => r.action.includes('in'));
     const early = inData.filter(r => classify(r.time, 'in').color === '#4CAF50').length;
@@ -480,8 +505,8 @@ function renderCheckInCharts(data) {
         type: 'doughnut',
          {
             labels: ['Đi sớm', 'Đúng giờ', 'Đi muộn'],
-             [{
-                 data: [early, ontime, late],
+            datasets: [{
+                 [early, ontime, late],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
             }]
         },
@@ -491,10 +516,26 @@ function renderCheckInCharts(data) {
         }
     });
 
+    const barType = document.getElementById('barTypeIn').value;
+    let label = '', color = '';
+    let filteredData = [];
+
+    if (barType === 'late') {
+        label = 'Đi muộn';
+        color = '#f44336';
+        filteredData = inData.filter(r => classify(r.time, 'in').color === '#f44336');
+    } else if (barType === 'early') {
+        label = 'Đi sớm';
+        color = '#4CAF50';
+        filteredData = inData.filter(r => classify(r.time, 'in').color === '#4CAF50');
+    } else if (barType === 'ontime') {
+        label = 'Đúng giờ';
+        color = '#FF9800';
+        filteredData = inData.filter(r => classify(r.time, 'in').color === '#FF9800');
+    }
+
     const names = [...new Set(inData.map(r => r.name))];
-    const lateCounts = names.map(n =>
-        inData.filter(r => r.name === n && classify(r.time, 'in').color === '#f44336').length
-    );
+    const counts = names.map(n => filteredData.filter(r => r.name === n).length);
 
     if (chartBarIn) chartBarIn.destroy();
     const ctx2 = document.getElementById('barChartIn').getContext('2d');
@@ -502,15 +543,15 @@ function renderCheckInCharts(data) {
         type: 'bar',
          {
             labels: names,
-             [{
-                label: 'Đi muộn',
-                 lateCounts,
-                backgroundColor: '#f44336'
+            datasets: [{
+                label: label,
+                 counts,
+                backgroundColor: color
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'Ai đi muộn?' } },
+            plugins: { title: { display: true, text: `Ai ${label.toLowerCase()}?` } },
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
     });
@@ -528,8 +569,8 @@ function renderCheckOutCharts(data) {
         type: 'doughnut',
          {
             labels: ['Về sớm', 'Đúng giờ', 'Về muộn'],
-             [{
-                 data: [early, ontime, late],
+            datasets: [{
+                 [early, ontime, late],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
             }]
         },
@@ -539,10 +580,26 @@ function renderCheckOutCharts(data) {
         }
     });
 
+    const barType = document.getElementById('barTypeOut').value;
+    let label = '', color = '';
+    let filteredData = [];
+
+    if (barType === 'late') {
+        label = 'Về muộn';
+        color = '#f44336';
+        filteredData = outData.filter(r => classify(r.time, 'out').color === '#f44336');
+    } else if (barType === 'early') {
+        label = 'Về sớm';
+        color = '#4CAF50';
+        filteredData = outData.filter(r => classify(r.time, 'out').color === '#4CAF50');
+    } else if (barType === 'ontime') {
+        label = 'Đúng giờ';
+        color = '#FF9800';
+        filteredData = outData.filter(r => classify(r.time, 'out').color === '#FF9800');
+    }
+
     const names = [...new Set(outData.map(r => r.name))];
-    const lateCounts = names.map(n =>
-        outData.filter(r => r.name === n && classify(r.time, 'out').color === '#f44336').length
-    );
+    const counts = names.map(n => filteredData.filter(r => r.name === n).length);
 
     if (chartBarOut) chartBarOut.destroy();
     const ctx2 = document.getElementById('barChartOut').getContext('2d');
@@ -550,15 +607,15 @@ function renderCheckOutCharts(data) {
         type: 'bar',
          {
             labels: names,
-             [{
-                label: 'Về muộn',
-                 lateCounts,
-                backgroundColor: '#f44336'
+            datasets: [{
+                label: label,
+                 counts,
+                backgroundColor: color
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'Ai về muộn?' } },
+            plugins: { title: { display: true, text: `Ai ${label.toLowerCase()}?` } },
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
     });
@@ -587,8 +644,8 @@ function renderOverviewChart(data) {
         type: 'doughnut',
          {
             labels: ['Đi sớm', 'Vào đúng', 'Đi muộn', 'Về sớm', 'Ra đúng', 'Về muộn'],
-             [{
-                 data: [earlyIn, onTimeIn, lateIn, earlyOut, onTimeOut, lateOut],
+            datasets: [{
+                 [earlyIn, onTimeIn, lateIn, earlyOut, onTimeOut, lateOut],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336', '#81C784', '#FFB74D', '#E57373']
             }]
         },
@@ -600,7 +657,7 @@ function renderOverviewChart(data) {
     });
 }
 
-// --- LOAD DATA ---
+// --- LOAD DỮ LIỆU ---
 function loadData() {
     fetch(SHEET_URL)
         .then(r => r.text())
