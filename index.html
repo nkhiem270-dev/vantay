@@ -13,7 +13,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 1300px;
+            max-width: 1200px;
             margin: auto;
             background: white;
             border-radius: 15px;
@@ -31,11 +31,36 @@
             font-size: 28px;
         }
 
-        /* --- PHẦN CHẤM CÔNG --- */
-        .attendance-section {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
+        /* --- TABS --- */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
         }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #555;
+            transition: background 0.3s;
+        }
+        .tab-btn.active {
+            background: #e9ecef;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* --- PHẦN CHẤM CÔNG --- */
         .controls {
             text-align: center;
             margin-bottom: 20px;
@@ -76,39 +101,44 @@
         .ontime-row { background: #fff3e0; }
 
         /* --- PHẦN BIỂU ĐỒ & THỐNG KÊ --- */
-        .dashboard-section {
-            padding: 20px;
-        }
         .stats {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 20px;
         }
         .card {
             background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             text-align: center;
-            min-width: 150px;
+            min-width: 120px;
+            font-size: 14px;
         }
-        .early { border-left: 6px solid #4CAF50; }
-        .late { border-left: 6px solid #f44336; }
-        .ontime { border-left: 6px solid #FF9800; }
-        .charts {
+        .early { border-left: 5px solid #4CAF50; }
+        .late { border-left: 5px solid #f44336; }
+        .ontime { border-left: 5px solid #FF9800; }
+
+        .chart-container {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .chart-box {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            padding: 10px;
         }
         canvas {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             max-width: 100%;
+            height: 250px !important;
         }
 
         footer {
@@ -125,8 +155,14 @@
         <h1>HỆ THỐNG CHẤM CÔNG - DỮ LIỆU THỰC TẾ</h1>
     </header>
 
-    <!-- PHẦN 1: CHẤM CÔNG -->
-    <section class="attendance-section">
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('attendance')">Chấm Công</button>
+        <button class="tab-btn" onclick="openTab('dashboard')">Biểu Đồ & Thống Kê</button>
+    </div>
+
+    <!-- TAB 1: CHẤM CÔNG -->
+    <section id="attendance" class="tab-content active">
         <h2 style="text-align: center; margin-bottom: 15px;">Dữ liệu chấm công</h2>
         <div class="controls">
             <input type="text" id="searchName" placeholder="Tìm tên nhân viên...">
@@ -143,13 +179,17 @@
         </table>
     </section>
 
-    <!-- PHẦN 2: BIỂU ĐỒ & THỐNG KÊ -->
-    <section class="dashboard-section">
+    <!-- TAB 2: BIỂU ĐỒ & THỐNG KÊ -->
+    <section id="dashboard" class="tab-content">
         <h2 style="text-align: center; margin-bottom: 15px;">Thống kê & Biểu đồ</h2>
         <div class="stats" id="stats"></div>
-        <div class="charts">
-            <canvas id="pieChart" width="300" height="300"></canvas>
-            <canvas id="barChart" width="500" height="300"></canvas>
+        <div class="chart-container">
+            <div class="chart-box">
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="barChart"></canvas>
+            </div>
         </div>
     </section>
 
@@ -162,7 +202,8 @@
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?gid=0&single=true&output=csv';
 
 let allData = [];
-let chartPie, chartBar;
+let chartPie = null;
+let chartBar = null;
 
 function timeToMinutes(t) {
     if (!t || t.includes('-')) return NaN;
@@ -190,19 +231,39 @@ function formatDate(dateStr) {
     return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
 }
 
-function applyFilter() {
+function openTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(tabName).classList.add('active');
+    document.querySelector(`.tab-btn[onclick="openTab('${tabName}')"]`).classList.add('active');
+
+    if (tabName === 'dashboard') {
+        // Render lại biểu đồ khi mở tab dashboard
+        const filteredData = getFilteredData();
+        renderStats(filteredData);
+        renderCharts(filteredData);
+    }
+}
+
+function getFilteredData() {
     const name = document.getElementById('searchName').value.trim();
     const date = document.getElementById('filterDate').value;
 
-    const filtered = allData.filter(row => {
+    return allData.filter(row => {
         const nameMatch = name === '' || row.name.toLowerCase().startsWith(name.toLowerCase());
         const dateMatch = !date || formatDate(row.date) === date;
         return nameMatch && dateMatch;
     });
+}
 
+function applyFilter() {
+    const filtered = getFilteredData();
     renderTable(filtered);
-    renderStats(filtered);
-    renderCharts(filtered);
+    if (document.getElementById('dashboard').classList.contains('active')) {
+        renderStats(filtered);
+        renderCharts(filtered);
+    }
 }
 
 function resetFilter() {
@@ -250,24 +311,25 @@ function renderStats(data) {
     });
 
     document.getElementById('stats').innerHTML = `
-        <div class="card early"><h2>${earlyIn}</h2><p>Đi sớm</p></div>
-        <div class="card late"><h2>${lateIn}</h2><p>Đi muộn</p></div>
-        <div class="card ontime"><h2>${onTimeIn}</h2><p>Đúng giờ (vào)</p></div>
-        <div class="card early"><h2>${earlyOut}</h2><p>Về sớm</p></div>
-        <div class="card late"><h2>${lateOut}</h2><p>Về muộn</p></div>
-        <div class="card ontime"><h2>${onTimeOut}</h2><p>Đúng giờ (ra)</p></div>
+        <div class="card early"><h3>${earlyIn}</h3><p>Đi sớm</p></div>
+        <div class="card late"><h3>${lateIn}</h3><p>Đi muộn</p></div>
+        <div class="card ontime"><h3>${onTimeIn}</h3><p>Đúng giờ (vào)</p></div>
+        <div class="card early"><h3>${earlyOut}</h3><p>Về sớm</p></div>
+        <div class="card late"><h3>${lateOut}</h3><p>Về muộn</p></div>
+        <div class="card ontime"><h3>${onTimeOut}</h3><p>Đúng giờ (ra)</p></div>
     `;
 }
 
 function renderCharts(data) {
-    // Biểu đồ tròn – chỉ tính check-in
+    // Biểu đồ tròn – check-in
     const inData = data.filter(r => r.action.includes('in'));
     const earlyIn = inData.filter(r => classify(r.time,'in').color === '#4CAF50').length;
     const lateIn = inData.filter(r => classify(r.time,'in').color === '#f44336').length;
     const onTimeIn = inData.length - earlyIn - lateIn;
 
     if (chartPie) chartPie.destroy();
-    chartPie = new Chart(document.getElementById('pieChart'), {
+    const ctx1 = document.getElementById('pieChart').getContext('2d');
+    chartPie = new Chart(ctx1, {
         type: 'doughnut',
         data: {
             labels: ['Đi sớm', 'Đúng giờ', 'Đi muộn'],
@@ -277,7 +339,10 @@ function renderCharts(data) {
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
+                legend: { position: 'bottom' },
                 title: { display: true, text: 'Tỷ lệ đi làm (check-in)' }
             }
         }
@@ -294,7 +359,8 @@ function renderCharts(data) {
     );
 
     if (chartBar) chartBar.destroy();
-    chartBar = new Chart(document.getElementById('barChart'), {
+    const ctx2 = document.getElementById('barChart').getContext('2d');
+    chartBar = new Chart(ctx2, {
         type: 'bar',
         data: {
             labels: names,
@@ -305,14 +371,15 @@ function renderCharts(data) {
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
+                legend: { display: false },
                 title: { display: true, text: 'Ai hay đi muộn nhất?' }
             },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            },
-            responsive: true,
-            maintainAspectRatio: false
+            }
         }
     });
 }
@@ -324,11 +391,10 @@ function loadData() {
             const rows = csv
                 .split('\n')
                 .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
-                .filter(row => row.length >= 5); // tránh dòng rỗng
+                .filter(row => row.length >= 5);
 
-            // Bỏ 2 dòng đầu (header)
             allData = rows.slice(2)
-                .filter(r => r[1]) // có tên
+                .filter(r => r[1])
                 .map(row => ({
                     date: row[0],
                     name: row[1],
