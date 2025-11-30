@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Chấm Công - Dữ Liệu Thực Tế</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* --- TABS --- */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #555;
+            transition: background 0.3s;
+        }
+        .tab-btn.active {
+            background: #e9ecef;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* --- PHẦN CHẤM CÔNG --- */
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #ff5722;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #e64a19;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
+        .early-row { background: #e8f5e9; }
+        .late-row { background: #ffebee; }
+        .ontime-row { background: #fff3e0; }
+
+        /* --- PHẦN BIỂU ĐỒ & THỐNG KÊ --- */
+        .stats {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 120px;
+            font-size: 14px;
+        }
+        .early { border-left: 5px solid #4CAF50; }
+        .late { border-left: 5px solid #f44336; }
+        .ontime { border-left: 5px solid #FF9800; }
+
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .chart-box {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+        canvas {
+            max-width: 100%;
+            height: 250px !important;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>HỆ THỐNG CHẤM CÔNG - DỮ LIỆU THỰC TẾ</h1>
+    </header>
+
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('attendance')">Chấm Công</button>
+        <button class="tab-btn" onclick="openTab('dashboard')">Biểu Đồ & Thống Kê</button>
+    </div>
+
+    <!-- TAB 1: CHẤM CÔNG -->
+    <section id="attendance" class="tab-content active">
+        <h2 style="text-align: center; margin-bottom: 15px;">Dữ liệu chấm công</h2>
+        <div class="controls">
+            <input type="text" id="searchName" placeholder="Tìm tên nhân viên...">
+            <input type="date" id="filterDate">
+            <button onclick="applyFilter()">Lọc</button>
+            <button onclick="resetFilter()">Xem tất cả</button>
+        </div>
+
+        <table id="dataTable">
+            <thead>
+                <tr><th>Ngày</th><th>Họ Tên</th><th>Hành động</th><th>Giờ</th><th>Trạng thái</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </section>
+
+    <!-- TAB 2: BIỂU ĐỒ & THỐNG KÊ -->
+    <section id="dashboard" class="tab-content">
+        <h2 style="text-align: center; margin-bottom: 15px;">Thống kê & Biểu đồ</h2>
+        <div class="stats" id="stats"></div>
+        <div class="chart-container">
+            <div class="chart-box">
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        Cập nhật lúc: <span id="lastUpdate"></span>
+    </footer>
+</div>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?gid=0&single=true&output=csv';
+
+let allData = [];
+let chartPie = null;
+let chartBar = null;
+
+function timeToMinutes(t) {
+    if (!t || t.includes('-')) return NaN;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function classify(timeStr, type) {
+    if (!timeStr || timeStr.includes('-')) return {text: "—", color: "#999"};
+    const mins = timeToMinutes(timeStr);
+    if (type === "in") {
+        if (mins <= 480) return {text: "Đi sớm", color: "#4CAF50"};      // ≤ 8:00
+        if (mins > 480 && mins <= 510) return {text: "Đúng giờ", color: "#FF9800"}; // 8:00 - 8:30
+        return {text: "Đi muộn", color: "#f44336"};
+    } else {
+        if (mins < 1050) return {text: "Về sớm", color: "#4CAF50"};      // < 17:30
+        if (mins >= 1050 && mins <= 1080) return {text: "Đúng giờ", color: "#FF9800"}; // 17:30–18:00
+        return {text: "Về muộn", color: "#f44336"};
+    }
+}
+
+function formatDate(dateStr) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+}
+
+function openTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(tabName).classList.add('active');
+    document.querySelector(`.tab-btn[onclick="openTab('${tabName}')"]`).classList.add('active');
+
+    if (tabName === 'dashboard') {
+        // Render lại biểu đồ khi mở tab dashboard
+        const filteredData = getFilteredData();
+        renderStats(filteredData);
+        renderCharts(filteredData);
+    }
+}
+
+function getFilteredData() {
+    const name = document.getElementById('searchName').value.trim();
+    const date = document.getElementById('filterDate').value;
+
+    return allData.filter(row => {
+        const nameMatch = name === '' || row.name.toLowerCase().startsWith(name.toLowerCase());
+        const dateMatch = !date || formatDate(row.date) === date;
+        return nameMatch && dateMatch;
+    });
+}
+
+function applyFilter() {
+    const filtered = getFilteredData();
+    renderTable(filtered);
+    if (document.getElementById('dashboard').classList.contains('active')) {
+        renderStats(filtered);
+        renderCharts(filtered);
+    }
+}
+
+function resetFilter() {
+    document.getElementById('searchName').value = '';
+    document.getElementById('filterDate').value = '';
+    applyFilter();
+}
+
+function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+        const status = classify(row.time, row.action.includes('in') ? 'in' : 'out');
+        const tr = document.createElement('tr');
+        if (status.color === '#4CAF50') tr.classList.add('early-row');
+        else if (status.color === '#f44336') tr.classList.add('late-row');
+        else if (status.color === '#FF9800') tr.classList.add('ontime-row');
+
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.name}</td>
+          <td>${row.action}</td>
+          <td>${row.time}</td>
+          <td style="color:${status.color}; font-weight:bold">${status.text}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderStats(data) {
+    let earlyIn = 0, lateIn = 0, onTimeIn = 0;
+    let earlyOut = 0, lateOut = 0, onTimeOut = 0;
+
+    data.forEach(row => {
+        const c = classify(row.time, row.action.includes('in') ? 'in' : 'out');
+        if (row.action.includes('in')) {
+            if (c.color === '#4CAF50') earlyIn++;
+            else if (c.color === '#f44336') lateIn++;
+            else onTimeIn++;
+        } else {
+            if (c.color === '#4CAF50') earlyOut++;
+            else if (c.color === '#f44336') lateOut++;
+            else onTimeOut++;
+        }
+    });
+
+    document.getElementById('stats').innerHTML = `
+        <div class="card early"><h3>${earlyIn}</h3><p>Đi sớm</p></div>
+        <div class="card late"><h3>${lateIn}</h3><p>Đi muộn</p></div>
+        <div class="card ontime"><h3>${onTimeIn}</h3><p>Đúng giờ (vào)</p></div>
+        <div class="card early"><h3>${earlyOut}</h3><p>Về sớm</p></div>
+        <div class="card late"><h3>${lateOut}</h3><p>Về muộn</p></div>
+        <div class="card ontime"><h3>${onTimeOut}</h3><p>Đúng giờ (ra)</p></div>
+    `;
+}
+
+function renderCharts(data) {
+    // Biểu đồ tròn – check-in
+    const inData = data.filter(r => r.action.includes('in'));
+    const earlyIn = inData.filter(r => classify(r.time,'in').color === '#4CAF50').length;
+    const lateIn = inData.filter(r => classify(r.time,'in').color === '#f44336').length;
+    const onTimeIn = inData.length - earlyIn - lateIn;
+
+    if (chartPie) chartPie.destroy();
+    const ctx1 = document.getElementById('pieChart').getContext('2d');
+    chartPie = new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Đi sớm', 'Đúng giờ', 'Đi muộn'],
+            datasets: [{
+                data: [earlyIn, onTimeIn, lateIn],
+                backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: true, text: 'Tỷ lệ đi làm (check-in)' }
+            }
+        }
+    });
+
+    // Biểu đồ cột – ai đi muộn nhiều nhất
+    const names = [...new Set(data.map(r => r.name))];
+    const lateCounts = names.map(n =>
+        data.filter(r =>
+            r.name === n &&
+            r.action.includes('in') &&
+            classify(r.time, 'in').color === '#f44336'
+        ).length
+    );
+
+    if (chartBar) chartBar.destroy();
+    const ctx2 = document.getElementById('barChart').getContext('2d');
+    chartBar = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: names,
+            datasets: [{
+                label: 'Số lần đi muộn',
+                data: lateCounts,
+                backgroundColor: '#f44336'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: 'Ai hay đi muộn nhất?' }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+function loadData() {
+    fetch(SHEET_URL)
+        .then(r => r.text())
+        .then(csv => {
+            const rows = csv
+                .split('\n')
+                .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
+                .filter(row => row.length >= 5);
+
+            allData = rows.slice(2)
+                .filter(r => r[1])
+                .map(row => ({
+                    date: row[0],
+                    name: row[1],
+                    action: row[3],
+                    time: row[4]
+                }));
+
+            applyFilter();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('vi-VN');
+        })
+        .catch(err => {
+            console.error("Lỗi khi tải dữ liệu:", err);
+        });
+}
+
+// Khởi tạo
+window.onload = () => {
+    loadData();
+    document.getElementById('searchName').addEventListener('input', applyFilter);
+    document.getElementById('filterDate').addEventListener('change', applyFilter);
+};
+
+// Tự động cập nhật mỗi 15 giây
+setInterval(() => {
+    console.log("Đang tự động cập nhật dữ liệu...");
+    loadData();
+}, 15000);
+</script>
+</body>
+</html>
