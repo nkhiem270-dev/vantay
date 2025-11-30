@@ -177,6 +177,7 @@
             </thead>
             <tbody id="tableBody"></tbody>
         </table>
+        <div id="pagination" style="text-align: center; margin-top: 15px;"></div>
     </section>
 
     <!-- TAB 2: BIỂU ĐỒ & THỐNG KÊ -->
@@ -199,11 +200,14 @@
 </div>
 
 <script>
+//
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?gid=0&single=true&output=csv';
 
 let allData = [];
 let chartPie = null;
 let chartBar = null;
+let currentPage = 1;
+const rowsPerPage = 13;
 
 function timeToMinutes(t) {
     if (!t || t.includes('-')) return NaN;
@@ -239,7 +243,6 @@ function openTab(tabName) {
     document.querySelector(`.tab-btn[onclick="openTab('${tabName}')"]`).classList.add('active');
 
     if (tabName === 'dashboard') {
-        // Render lại biểu đồ khi mở tab dashboard
         const filteredData = getFilteredData();
         renderStats(filteredData);
         renderCharts(filteredData);
@@ -258,6 +261,7 @@ function getFilteredData() {
 }
 
 function applyFilter() {
+    currentPage = 1; // Luôn về trang 1 khi lọc
     const filtered = getFilteredData();
     renderTable(filtered);
     if (document.getElementById('dashboard').classList.contains('active')) {
@@ -267,15 +271,34 @@ function applyFilter() {
 }
 
 function resetFilter() {
+    currentPage = 1; // Reset về trang 1
     document.getElementById('searchName').value = '';
     document.getElementById('filterDate').value = '';
     applyFilter();
 }
 
+function changePage(page) {
+    currentPage = page;
+    applyFilter();
+}
+
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
+    const paginationEl = document.getElementById('pagination');
     tbody.innerHTML = '';
-    data.forEach(row => {
+    paginationEl.innerHTML = '';
+
+    const totalRows = data.length;
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    if (totalPages === 0) currentPage = 1;
+
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const paginatedData = data.slice(startIndex, startIndex + rowsPerPage);
+
+    paginatedData.forEach(row => {
         const status = classify(row.time, row.action.includes('in') ? 'in' : 'out');
         const tr = document.createElement('tr');
         if (status.color === '#4CAF50') tr.classList.add('early-row');
@@ -291,6 +314,36 @@ function renderTable(data) {
         `;
         tbody.appendChild(tr);
     });
+
+    // Render phân trang
+    if (totalPages <= 1) return;
+
+    let html = '';
+
+    if (currentPage > 1) {
+        html += `<button onclick="changePage(${currentPage - 1})" style="margin: 0 5px; padding: 6px 10px;">«</button>`;
+    }
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage + 1 < maxVisible) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            html += `<span style="margin: 0 5px; font-weight: bold; color: #667eea;">${i}</span>`;
+        } else {
+            html += `<button onclick="changePage(${i})" style="margin: 0 5px; padding: 6px 10px;">${i}</button>`;
+        }
+    }
+
+    if (currentPage < totalPages) {
+        html += `<button onclick="changePage(${currentPage + 1})" style="margin: 0 5px; padding: 6px 10px;">»</button>`;
+    }
+
+    paginationEl.innerHTML = html;
 }
 
 function renderStats(data) {
@@ -321,7 +374,6 @@ function renderStats(data) {
 }
 
 function renderCharts(data) {
-    // Biểu đồ tròn – check-in
     const inData = data.filter(r => r.action.includes('in'));
     const earlyIn = inData.filter(r => classify(r.time,'in').color === '#4CAF50').length;
     const lateIn = inData.filter(r => classify(r.time,'in').color === '#f44336').length;
@@ -348,7 +400,6 @@ function renderCharts(data) {
         }
     });
 
-    // Biểu đồ cột – ai đi muộn nhiều nhất
     const names = [...new Set(data.map(r => r.name))];
     const lateCounts = names.map(n =>
         data.filter(r =>
@@ -393,8 +444,9 @@ function loadData() {
                 .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
                 .filter(row => row.length >= 5);
 
-            allData = rows.slice(2)
-                .filter(r => r[1])
+            //
+            allData = rows.slice(1)
+                .filter(r => r[1] && r[0] && r[3] && r[4]) // lọc dữ liệu hợp lệ
                 .map(row => ({
                     date: row[0],
                     name: row[1],
@@ -407,10 +459,10 @@ function loadData() {
         })
         .catch(err => {
             console.error("Lỗi khi tải dữ liệu:", err);
+            document.getElementById('lastUpdate').textContent = "Lỗi kết nối";
         });
 }
 
-// Khởi tạo
 window.onload = () => {
     loadData();
     document.getElementById('searchName').addEventListener('input', applyFilter);
@@ -418,10 +470,7 @@ window.onload = () => {
 };
 
 // Tự động cập nhật mỗi 15 giây
-setInterval(() => {
-    console.log("Đang tự động cập nhật dữ liệu...");
-    loadData();
-}, 15000);
+setInterval(loadData, 15000);
 </script>
 </body>
 </html>
