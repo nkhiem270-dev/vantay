@@ -6,80 +6,181 @@
     <title>Hệ Thống Chấm Công - Dữ Liệu Thực Tế</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {font-family: Arial, sans-serif; background:#f0f2f5; margin:0; padding:20px;}
-        .container {max-width:1300px; margin:auto; background:white; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.1); overflow:hidden;}
-        header {background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:25px; text-align:center;}
-        h1 {margin:0; font-size:28px;}
-        .controls {padding:20px; text-align:center; background:#f8f9fa;}
-        input, select, button {padding:10px 15px; margin:5px; font-size:16px; border-radius:8px; border:1px solid #ddd;}
-        button {background:#ff5722; color:white; border:none; cursor:pointer;}
-        button:hover {background:#e64a19;}
-        .stats {display:flex; justify-content:center; flex-wrap:wrap; gap:20px; padding:20px;}
-        .card {background:#fff; padding:20px; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,0.1); text-align:center; min-width:150px;}
-        .early {border-left:6px solid #4CAF50;}
-        .late {border-left:6px solid #f44336;}
-        .ontime {border-left:6px solid #FF9800;}
-        .charts {display:flex; flex-wrap:wrap; justify-content:center; gap:20px; padding:20px;}
-        canvas {background:white; border-radius:12px; box-shadow:0 5px 15px rgba(0,0,0,0.1);}
-        table {width:100%; border-collapse:collapse; margin:20px;}
-        th, td {padding:12px; text-align:center; border-bottom:1px solid #eee;}
-        th {background:#f8f9fa; position:sticky; top:0;}
-        .early-row {background:#e8f5e9;}
-        .late-row {background:#ffebee;}
-        .ontime-row {background:#fff3e0;}
-        footer {text-align:center; padding:20px; background:#f8f9fa; color:#777;}
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* --- PHẦN CHẤM CÔNG --- */
+        .attendance-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #ff5722;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #e64a19;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
+        .early-row { background: #e8f5e9; }
+        .late-row { background: #ffebee; }
+        .ontime-row { background: #fff3e0; }
+
+        /* --- PHẦN BIỂU ĐỒ & THỐNG KÊ --- */
+        .dashboard-section {
+            padding: 20px;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 150px;
+        }
+        .early { border-left: 6px solid #4CAF50; }
+        .late { border-left: 6px solid #f44336; }
+        .ontime { border-left: 6px solid #FF9800; }
+        .charts {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        canvas {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-width: 100%;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #777;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <header><h1>HỆ THỐNG CHẤM CÔNG - DỮ LIỆU THỰC TẾ</h1></header>
-    
-    <div class="controls">
-        <input type="text" id="searchName" placeholder="Tìm tên nhân viên...">
-        <input type="date" id="filterDate">
-        <button onclick="applyFilter()">Lọc</button>
-        <button onclick="resetFilter()">Xem tất cả</button>
-    </div>
+    <header>
+        <h1>HỆ THỐNG CHẤM CÔNG - DỮ LIỆU THỰC TẾ</h1>
+    </header>
 
-    <div class="stats" id="stats"></div>
-    <div class="charts">
-        <canvas id="pieChart" width="140" height="140"></canvas>
-        <canvas id="barChart" width="400" height="200"></canvas>
-    </div>
+    <!-- PHẦN 1: CHẤM CÔNG -->
+    <section class="attendance-section">
+        <h2 style="text-align: center; margin-bottom: 15px;">Dữ liệu chấm công</h2>
+        <div class="controls">
+            <input type="text" id="searchName" placeholder="Tìm tên nhân viên...">
+            <input type="date" id="filterDate">
+            <button onclick="applyFilter()">Lọc</button>
+            <button onclick="resetFilter()">Xem tất cả</button>
+        </div>
 
-    <table id="dataTable">
-        <thead>
-            <tr><th>Ngày</th><th>Họ Tên</th><th>Hành động</th><th>Giờ</th><th>Trạng thái</th></tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+        <table id="dataTable">
+            <thead>
+                <tr><th>Ngày</th><th>Họ Tên</th><th>Hành động</th><th>Giờ</th><th>Trạng thái</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </section>
 
-    <footer>Cập nhật lúc: <span id="lastUpdate"></span></footer>
+    <!-- PHẦN 2: BIỂU ĐỒ & THỐNG KÊ -->
+    <section class="dashboard-section">
+        <h2 style="text-align: center; margin-bottom: 15px;">Thống kê & Biểu đồ</h2>
+        <div class="stats" id="stats"></div>
+        <div class="charts">
+            <canvas id="pieChart" width="300" height="300"></canvas>
+            <canvas id="barChart" width="500" height="300"></canvas>
+        </div>
+    </section>
+
+    <footer>
+        Cập nhật lúc: <span id="lastUpdate"></span>
+    </footer>
 </div>
 
 <script>
-// LINK CHÍNH XÁC TỪ TAB DATASHEET CỦA BẠN
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?gid=0&single=true&output=csv';
 
 let allData = [];
 let chartPie, chartBar;
 
 function timeToMinutes(t) {
+    if (!t || t.includes('-')) return NaN;
     const [h, m] = t.split(':').map(Number);
-    return h*60 + m;
+    return h * 60 + m;
 }
 
 function classify(timeStr, type) {
-    if (!timeStr || timeStr.includes('-')) return {text:"—", color:"#999"};
+    if (!timeStr || timeStr.includes('-')) return {text: "—", color: "#999"};
     const mins = timeToMinutes(timeStr);
     if (type === "in") {
-        if (mins <= 480) return {text:"Đi sớm", color:"#4CAF50"};      // ≤ 8:00
-        if (mins > 480 && mins <= 510) return {text:"Đúng giờ", color:"#FF9800"}; // 8:00 - 8:30
-        return {text:"Đi muộn", color:"#f44336"};
-    } else { // check out
-        if (mins < 1050) return {text:"Về sớm", color:"#4CAF50"};      // < 17:30
-        if (mins >= 1050 && mins <= 1080) return {text:"Đúng giờ", color:"#FF9800"}; // 17:30-18:00
-        return {text:"Về muộn", color:"#f44336"};
+        if (mins <= 480) return {text: "Đi sớm", color: "#4CAF50"};      // ≤ 8:00
+        if (mins > 480 && mins <= 510) return {text: "Đúng giờ", color: "#FF9800"}; // 8:00 - 8:30
+        return {text: "Đi muộn", color: "#f44336"};
+    } else {
+        if (mins < 1050) return {text: "Về sớm", color: "#4CAF50"};      // < 17:30
+        if (mins >= 1050 && mins <= 1080) return {text: "Đúng giờ", color: "#FF9800"}; // 17:30–18:00
+        return {text: "Về muộn", color: "#f44336"};
     }
 }
 
@@ -94,7 +195,6 @@ function applyFilter() {
     const date = document.getElementById('filterDate').value;
 
     const filtered = allData.filter(row => {
-        // Chỉ lọc theo chữ cái đầu của tên
         const nameMatch = name === '' || row.name.toLowerCase().startsWith(name.toLowerCase());
         const dateMatch = !date || formatDate(row.date) === date;
         return nameMatch && dateMatch;
@@ -103,7 +203,6 @@ function applyFilter() {
     renderTable(filtered);
     renderStats(filtered);
     renderCharts(filtered);
-
 }
 
 function resetFilter() {
@@ -119,11 +218,16 @@ function renderTable(data) {
         const status = classify(row.time, row.action.includes('in') ? 'in' : 'out');
         const tr = document.createElement('tr');
         if (status.color === '#4CAF50') tr.classList.add('early-row');
-        if (status.color === '#f44336') tr.classList.add('late-row');
-        if (status.color === '#FF9800') tr.classList.add('ontime-row');
+        else if (status.color === '#f44336') tr.classList.add('late-row');
+        else if (status.color === '#FF9800') tr.classList.add('ontime-row');
 
-        tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.action}</td><td>${row.time}</td>
-                        <td style="color:${status.color};font-weight:bold">${status.text}</td>`;
+        tr.innerHTML = `
+          <td>${row.date}</td>
+          <td>${row.name}</td>
+          <td>${row.action}</td>
+          <td>${row.time}</td>
+          <td style="color:${status.color}; font-weight:bold">${status.text}</td>
+        `;
         tbody.appendChild(tr);
     });
 }
@@ -135,12 +239,12 @@ function renderStats(data) {
     data.forEach(row => {
         const c = classify(row.time, row.action.includes('in') ? 'in' : 'out');
         if (row.action.includes('in')) {
-            if (c.color==='#4CAF50') earlyIn++;
-            else if (c.color==='#f44336') lateIn++;
+            if (c.color === '#4CAF50') earlyIn++;
+            else if (c.color === '#f44336') lateIn++;
             else onTimeIn++;
         } else {
-            if (c.color==='#4CAF50') earlyOut++;
-            else if (c.color==='#f44336') lateOut++;
+            if (c.color === '#4CAF50') earlyOut++;
+            else if (c.color === '#f44336') lateOut++;
             else onTimeOut++;
         }
     });
@@ -156,28 +260,60 @@ function renderStats(data) {
 }
 
 function renderCharts(data) {
-    // Biểu đồ tròn
+    // Biểu đồ tròn – chỉ tính check-in
     const inData = data.filter(r => r.action.includes('in'));
-    const earlyIn = inData.filter(r => classify(r.time,'in').color==='#4CAF50').length;
-    const lateIn = inData.filter(r => classify(r.time,'in').color==='#f44336').length;
+    const earlyIn = inData.filter(r => classify(r.time,'in').color === '#4CAF50').length;
+    const lateIn = inData.filter(r => classify(r.time,'in').color === '#f44336').length;
     const onTimeIn = inData.length - earlyIn - lateIn;
 
     if (chartPie) chartPie.destroy();
     chartPie = new Chart(document.getElementById('pieChart'), {
         type: 'doughnut',
-        data: {labels:['Đi sớm','Đúng giờ','Đi muộn'], datasets:[{data:[earlyIn,onTimeIn,lateIn], backgroundColor:['#4CAF50','#FF9800','#f44336']}]},
-        options: {plugins:{title:{display:true,text:'Tỷ lệ đi làm đúng giờ'}}}
+        data: {
+            labels: ['Đi sớm', 'Đúng giờ', 'Đi muộn'],
+            datasets: [{
+                data: [earlyIn, onTimeIn, lateIn],
+                backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
+            }]
+        },
+        options: {
+            plugins: {
+                title: { display: true, text: 'Tỷ lệ đi làm (check-in)' }
+            }
+        }
     });
 
-    // Biểu đồ cột theo tên
+    // Biểu đồ cột – ai đi muộn nhiều nhất
     const names = [...new Set(data.map(r => r.name))];
-    const lateCounts = names.map(n => data.filter(r => r.name===n && r.action.includes('in') && classify(r.time,'in').color==='#f44336').length);
+    const lateCounts = names.map(n =>
+        data.filter(r =>
+            r.name === n &&
+            r.action.includes('in') &&
+            classify(r.time, 'in').color === '#f44336'
+        ).length
+    );
 
     if (chartBar) chartBar.destroy();
     chartBar = new Chart(document.getElementById('barChart'), {
         type: 'bar',
-        data: {labels: names, datasets:[{label:'Số lần đi muộn', data: lateCounts, backgroundColor:'#f44336'}]},
-        options: {plugins:{title:{display:true,text:'Ai hay đi muộn nhất?'}}, scales:{y:{beginAtZero:true}}}
+        data: {
+            labels: names,
+            datasets: [{
+                label: 'Số lần đi muộn',
+                data: lateCounts,
+                backgroundColor: '#f44336'
+            }]
+        },
+        options: {
+            plugins: {
+                title: { display: true, text: 'Ai hay đi muộn nhất?' }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            },
+            responsive: true,
+            maintainAspectRatio: false
+        }
     });
 }
 
@@ -185,23 +321,37 @@ function loadData() {
     fetch(SHEET_URL)
         .then(r => r.text())
         .then(csv => {
-            const rows = csv.split('\n').map(line => line.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
-            allData = rows.slice(2).filter(r => r[1]).map(row => ({ // bỏ 2 dòng header
-                date: row[0],
-                name: row[1],
-                action: row[3],
-                time: row[4]
-            }));
+            const rows = csv
+                .split('\n')
+                .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
+                .filter(row => row.length >= 5); // tránh dòng rỗng
+
+            // Bỏ 2 dòng đầu (header)
+            allData = rows.slice(2)
+                .filter(r => r[1]) // có tên
+                .map(row => ({
+                    date: row[0],
+                    name: row[1],
+                    action: row[3],
+                    time: row[4]
+                }));
+
             applyFilter();
             document.getElementById('lastUpdate').textContent = new Date().toLocaleString('vi-VN');
+        })
+        .catch(err => {
+            console.error("Lỗi khi tải dữ liệu:", err);
         });
 }
 
-window.onload = loadData;
-document.getElementById('searchName').addEventListener('input', applyFilter);
-document.getElementById('filterDate').addEventListener('change', applyFilter);
-</script>
-// Tự động reload dữ liệu mỗi 15 giây (15000ms)
+// Khởi tạo
+window.onload = () => {
+    loadData();
+    document.getElementById('searchName').addEventListener('input', applyFilter);
+    document.getElementById('filterDate').addEventListener('change', applyFilter);
+};
+
+// Tự động cập nhật mỗi 15 giây
 setInterval(() => {
     console.log("Đang tự động cập nhật dữ liệu...");
     loadData();
