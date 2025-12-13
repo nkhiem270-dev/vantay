@@ -658,8 +658,17 @@ function loadData() {
                 .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
                 .filter(row => row.length >= 5);
 
-            // Bỏ dòng đầu (header)
-            allData = rows.slice(1)
+           // Sau khi lấy rows
+            const headers = rows[0]; // dòng đầu tiên
+
+            // Kiểm tra nếu dòng đầu là header (có chứa 'Date', 'Name', ...)
+        if (headers && headers[0] === 'Date' && headers[1] === 'Name') {
+                allData = rows.slice(1);
+        } else {
+            allData = rows;
+    }
+
+            allData = allData
                 .filter(r => r[1] && r[0] && r[3] && r[4])
                 .map(row => ({
                     date: row[0],
@@ -688,3 +697,4 @@ setInterval(loadData, 15000);
 </script>
 </body>
 </html>
+
