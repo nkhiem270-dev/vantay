@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Chấm Công - Dữ Liệu Thực Tế</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js  "></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -219,7 +219,7 @@
         </div>
 
         <!-- Check-out -->
-        <div id="checkout" class="sub-tab-content">
+        <div id="checkout" class="sub-tab-content" style="display: none;">
             <div class="stats" id="stats-checkout"></div>
             <div style="text-align: center; margin-bottom: 15px;">
                 <label>
@@ -238,7 +238,7 @@
         </div>
 
         <!-- Tổng quan -->
-        <div id="overview" class="sub-tab-content">
+        <div id="overview" class="sub-tab-content" style="display: none;">
             <div class="stats" id="stats-overview"></div>
             <div class="chart-container">
                 <div class="chart-box"><canvas id="pieChartAll"></canvas></div>
@@ -252,8 +252,8 @@
 </div>
 
 <script>
-
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?output=csv';
+// ✅ SỬ DỤNG ĐÚNG LINK BẠN CUNG CẤP
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTicasy-IOQxPm0AycyqcWzxbwyX7ag-zrGvlTb-AyaqZ067jDCE4snGAvufdFRF0u4nH9zBGMZ42ru/pub?output=csv  ';
 
 let allData = [];
 let currentPage = 1;
@@ -302,32 +302,19 @@ function openTab(tabName) {
 }
 
 function openSubTab(tabName) {
-    // Ẩn tất cả sub-tab
     document.querySelectorAll('.sub-tab-content').forEach(el => {
         el.classList.remove('active');
         el.style.display = 'none';
     });
-    // Bỏ active tất cả nút sub-tab
     document.querySelectorAll('#dashboard .tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
 
-    // Hiển thị sub-tab được chọn
     const tab = document.getElementById(tabName);
     tab.classList.add('active');
     tab.style.display = 'block';
+    event.target.classList.add('active');
 
-    // ✅ SỬA: không dùng event.target → tìm nút theo nội dung
-    const buttonText = {
-        checkin: 'Check-in',
-        checkout: 'Check-out',
-        overview: 'Tổng quan'
-    };
-    const targetBtn = Array.from(document.querySelectorAll('#dashboard .tab-btn'))
-        .find(btn => btn.textContent.trim() === buttonText[tabName]);
-    if (targetBtn) targetBtn.classList.add('active');
-
-    // Cập nhật dữ liệu
     const filtered = getFilteredData();
     if (tabName === 'checkin') {
         renderCheckInStats(filtered);
@@ -508,10 +495,10 @@ function renderCheckInCharts(data) {
     const ctx1 = document.getElementById('pieChartIn').getContext('2d');
     chartPieIn = new Chart(ctx1, {
         type: 'doughnut',
-         {
+        data: {
             labels: ['Đi sớm', 'Đúng giờ', 'Đi muộn'],
             datasets: [{
-                 [early, ontime, late],
+                data: [early, ontime, late],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
             }]
         },
@@ -546,11 +533,11 @@ function renderCheckInCharts(data) {
     const ctx2 = document.getElementById('barChartIn').getContext('2d');
     chartBarIn = new Chart(ctx2, {
         type: 'bar',
-         {
+        data: {
             labels: names,
             datasets: [{
                 label: label,
-                 counts,
+                data: counts,
                 backgroundColor: color
             }]
         },
@@ -572,10 +559,10 @@ function renderCheckOutCharts(data) {
     const ctx1 = document.getElementById('pieChartOut').getContext('2d');
     chartPieOut = new Chart(ctx1, {
         type: 'doughnut',
-         {
+        data: {
             labels: ['Về sớm', 'Đúng giờ', 'Về muộn'],
             datasets: [{
-                 [early, ontime, late],
+                data: [early, ontime, late],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
             }]
         },
@@ -610,11 +597,11 @@ function renderCheckOutCharts(data) {
     const ctx2 = document.getElementById('barChartOut').getContext('2d');
     chartBarOut = new Chart(ctx2, {
         type: 'bar',
-         {
+        data: {
             labels: names,
             datasets: [{
                 label: label,
-                 counts,
+                data: counts,
                 backgroundColor: color
             }]
         },
@@ -647,10 +634,10 @@ function renderOverviewChart(data) {
     const ctx = document.getElementById('pieChartAll').getContext('2d');
     chartPieAll = new Chart(ctx, {
         type: 'doughnut',
-         {
+        data: {
             labels: ['Đi sớm', 'Vào đúng', 'Đi muộn', 'Về sớm', 'Ra đúng', 'Về muộn'],
             datasets: [{
-                 [earlyIn, onTimeIn, lateIn, earlyOut, onTimeOut, lateOut],
+                data: [earlyIn, onTimeIn, lateIn, earlyOut, onTimeOut, lateOut],
                 backgroundColor: ['#4CAF50', '#FF9800', '#f44336', '#81C784', '#FFB74D', '#E57373']
             }]
         },
@@ -663,17 +650,26 @@ function renderOverviewChart(data) {
 }
 
 function loadData() {
-    fetch(SHEET_URL.trim())
+    fetch(SHEET_URL)
         .then(r => r.text())
         .then(csv => {
             const rows = csv
                 .split('\n')
                 .map(line => line.split(',').map(c => c.replace(/^"|"$/g, '').trim()))
-                .filter(row => row.length >= 5 && row.some(cell => cell !== ''));
+                .filter(row => row.length >= 5);
 
-            // ✅ LẤY DỮ LIỆU TỪ HÀNG 3 TRỞ ĐI → BỎ 2 HÀNG ĐẦU
-            allData = rows.slice(2)
-                .filter(r => r[0] && r[1] && r[3] && r[4])
+           // Sau khi lấy rows
+            const headers = rows[0]; // dòng đầu tiên
+
+            // Kiểm tra nếu dòng đầu là header (có chứa 'Date', 'Name', ...)
+        if (headers && headers[0] === 'Date' && headers[1] === 'Name') {
+                allData = rows.slice(1);
+        } else {
+            allData = rows;
+    }
+
+            allData = allData
+                .filter(r => r[1] && r[0] && r[3] && r[4])
                 .map(row => ({
                     date: row[0],
                     name: row[1],
